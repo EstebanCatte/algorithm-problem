@@ -1,127 +1,126 @@
 #include <iostream>
-#include <vector>
-#include <list>
-#include <string>
 using namespace std;
+#include <typeinfo>
 
-class Edge
+struct Node
 {
-    public:
-    int weight;
-    int id;
-    
-    //constructor
-    Edge(int w){
-        string s="Null";
-        Vertex Destination(0,s);
-        Vertex Source(0,s);
-        weight = w;
-    }
-
-    void setWeight(int w) {
-        weight = w;
-    }
-
-    int getWeight(){
-        return weight;
-    }
-
-    //int getDestinationID(){
-    //    return DestinationID;
-    //}
-
-    //int setDestinationID(int destinationid){
-    //    DestinationID = destinationid;
-    //}
-
-    //int getSourceID(){
-    //    return SourceID;
-    //}
-
-    //int setSourceID(int sourceid){
-    //    SourceID = sourceid;
-    //}
+    int value, weight;
+    Node* next;
 };
 
-class Vertex
-{
-    public:
-    int id;
-    string name;
-    list<Edge> edgelist;
-
-    Vertex(int vertexId, string vertexName){
-        name = vertexName;
-        id = vertexId;
-    }
-
-    int getID(){
-        return id;
-    }
-
-    void setID(int vertexId){
-        id = vertexId;
-    }
+struct graphEdge {
+    int source, destination;
 };
+
 
 class Graph {
+
+    // Create a new node for the adjacency list
+    Node* getNeighbourVertex(int destination, Node* head_node){
+        Node* new_node = new Node;
+        new_node->value = destination;
+        new_node->next = head_node;
+        new_node->weight = 0;
+
+        return new_node;
+    }
+
+    int number_of_nodes;
+    int number_of_edges;
+    
     public:
-    int id;
-    int numVertices;
-    int numEdges;
-    vector<Vertex> vertices;
-    vector<Edge> edges;
+        Node **head_node;
 
-    Graph(int i=0) {
-        id = i;
-        numVertices=0;
-        numEdges=0;
+        //constructor
+        Graph(graphEdge graphEdges[], int num, int number_of_nodes){
+            this->number_of_nodes = number_of_nodes;
+            this->number_of_edges = num;
+            // dynamic memory allocation
+            head_node = new Node*[number_of_nodes]();
+
+            // initialize headnode for every edge of graph
+            for (int k = 0; k < number_of_nodes; k++) {
+                head_node[k] = NULL;
+            }
+
+            for (int k = 0; k < num; k++){
+                int source = graphEdges[k].source;
+                int destination = graphEdges[k].destination;
+
+                Node* new_node = getNeighbourVertex(destination, head_node[source]);
+                head_node[source] = new_node;
+            }
+        }
+
+        //destructor
+        ~Graph() {
+            for (int k = 0; k < number_of_nodes; k++) {
+                delete[] head_node[k];
+            }
+            delete[] head_node;
+        }
+
+
+    void AddEdge(graphEdge edge){
+        int source = edge.source;
+        int destination = edge.destination;
+        Node* new_node = getNeighbourVertex(destination, head_node[source]);
+        head_node[source] = new_node;
+        number_of_edges+=1;
     }
 
-    void add_vertex(string name)
-    {
-        Vertex vert(numVertices, name);
-        vertices.push_back(vert);
-        numVertices += 1;
-    }
 
-    void add_vertices(const vector<string> &names){
-        for(int i=0; i<names.size(); i++){
-            add_vertex(names[i]);
+    Node* GetEdge(graphEdge edge){
+        int source = edge.source;
+        int destination = edge.destination;
+        Node *node;
+        node = head_node[source];
+        while (node != NULL){
+            if (node->value == destination){
+                return node;
+            }
+            node = node->next;   
         }
     }
 
-    void add_edge(Vertex v1, Vertex v2){
-        Edge edge(1);
-        edges.push_back(edge);
-        numEdges += 1;
+
+    void SetEdgeWeight(graphEdge edge, int weight){
+        Node *node = GetEdge(edge);
+        node->weight = weight;
     }
 
-    void showVertices()
-    {
-        for(int i=0; i<numVertices; i++){
-            cout << "Vertice " << i << " id : " << vertices[i].id << " name : "<< vertices[i].name << endl;
+
+    void Display(){
+        cout << "=== Current Graph status ===" << endl;
+        Node *display_node;
+        for (int k = 0; k < number_of_nodes; k++) {
+            display_node = head_node[k];
+            cout << k;
+            while (display_node != NULL){
+                cout << " —> " << display_node->value << "(" << display_node->weight << ")";
+                display_node = display_node->next;
+            }
+            cout << endl;
         }
     }
 
-    //void showEdges()
-    //{
-    //    for(int i=0; i<numEdges; i++){
-    //        cout << "Edge " << i << " id : " << edges[i].id << " weigth : "<< edges[i].weight << " from : " << edges[i].SourceID.id << " to: " << edges[i].DestinationID.id << endl;
-    //    }
-    //}
 };
 
-int main()
-{
-    Graph g;
-    const char *names[] = {"Paris", "Londres"};
-    vector<string> n(names, names+2);
-    
-    g.add_vertices(n);
-    g.add_edge(g.vertices[0], g.vertices[1]);
-    g.showVertices();
-    //g.showEdges();
-    return 0;
+int main(){
+    graphEdge graphEdges[] = {{0, 1}, {1, 2}, {2, 0}, {2, 1}, {3, 2}, {4, 1}, {3, 4}};
 
+    int number_of_nodes = 5;
+    int num_edges = sizeof(graphEdges)/sizeof(graphEdges[0]);
+
+    // create the graph
+    Graph graph(graphEdges, num_edges, number_of_nodes);
+
+    graph.Display();
+
+    graphEdge new_edge = {4,0};
+    graph.AddEdge(new_edge);
+    graph.SetEdgeWeight(new_edge, 12);
+    graph.Display();
+
+    return 0;
 }
