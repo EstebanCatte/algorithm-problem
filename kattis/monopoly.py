@@ -1,0 +1,1 @@
+print(sum(map(lambda x: 6-abs(int(x)-7), open(0).readlines()[1].strip().split()))/36)
