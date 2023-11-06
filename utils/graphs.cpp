@@ -1,6 +1,9 @@
-#include <iostream>
+#include <bits/stdc++.h>
 using namespace std;
 #include <typeinfo>
+#include <vector>
+
+//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
 
 struct Node
 {
@@ -32,23 +35,25 @@ class Graph {
         Node **head_node;
 
         //constructor
-        Graph(graphEdge graphEdges[], int num, int number_of_nodes){
-            this->number_of_nodes = number_of_nodes;
-            this->number_of_edges = num;
+        Graph(vector<graphEdge> graphEdges, int num_of_edge, int num_of_node){
+            this->number_of_nodes = num_of_node;
+            this->number_of_edges = num_of_edge;
             // dynamic memory allocation
-            head_node = new Node*[number_of_nodes]();
+            head_node = new Node*[num_of_node]();
 
             // initialize headnode for every edge of graph
-            for (int k = 0; k < number_of_nodes; k++) {
+            for (int k = 0; k < num_of_node; k++) {
                 head_node[k] = NULL;
             }
 
-            for (int k = 0; k < num; k++){
-                int source = graphEdges[k].source;
-                int destination = graphEdges[k].destination;
+            if(num_of_edge > 0){
+                for (int k = 0; k < num_of_edge; k++){
+                    int source = graphEdges[k].source;
+                    int destination = graphEdges[k].destination;
 
-                Node* new_node = getNeighbourVertex(destination, head_node[source]);
-                head_node[source] = new_node;
+                    Node* new_node = getNeighbourVertex(destination, head_node[source]);
+                    head_node[source] = new_node;
+                }
             }
         }
 
@@ -107,19 +112,23 @@ class Graph {
 };
 
 int main(){
-    graphEdge graphEdges[] = {{0, 1}, {1, 2}, {2, 0}, {2, 1}, {3, 2}, {4, 1}, {3, 4}};
+    //creating graph
+    int a,b,N,M;
+    scanf("%d %d", &N, &M);
 
-    int number_of_nodes = 5;
-    int num_edges = sizeof(graphEdges)/sizeof(graphEdges[0]);
-
-    // create the graph
+    vector<graphEdge> graphEdges;
+    int number_of_nodes = N;
+    int num_edges = 0;
     Graph graph(graphEdges, num_edges, number_of_nodes);
-
     graph.Display();
 
-    graphEdge new_edge = {4,0};
-    graph.AddEdge(new_edge);
-    graph.SetEdgeWeight(new_edge, 12);
+    //input
+    for(int i = 0; i < M; i++){
+        scanf("%d %d", &a, &b);
+        graphEdge new_edge = {a-1,b-1};
+        graph.AddEdge(new_edge);
+    }
+    
     graph.Display();
 
     return 0;
