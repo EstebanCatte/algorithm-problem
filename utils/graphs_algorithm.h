@@ -41,13 +41,13 @@ void BellmanFord(Graph* graph, int src)
     int E = graph->GetNumEdges();
     int dist[V];
  
-    // Step 1: Initialize distances from src to all other
+    // Initialize distances from src to all other
     // vertices as INFINITE
     for (int i = 0; i < V; i++)
         dist[i] = INF;
     dist[src] = 0;
  
-    // Step 2: Relax all edges |V| - 1 times. A simple
+    // Relax all edges |V| - 1 times. A simple
     // shortest path from src to any other vertex can have
     // at-most |V| - 1 edges
     for (int i = 1; i <= V - 1; i++) {
@@ -61,7 +61,7 @@ void BellmanFord(Graph* graph, int src)
         }
     }
  
-    // Step 3: check for negative-weight cycles.  The above
+    // check for negative-weight cycles.  The above
     // step guarantees shortest distances if graph doesn't
     // contain negative weight cycle.  If we get a shorter
     // path, then there is a cycle.
@@ -78,11 +78,11 @@ void BellmanFord(Graph* graph, int src)
     cout << "Vertex Distance from Source" << endl;
     for (int i = 0; i < V; i++)
         cout << i << "\t\t" << dist[i] << endl;
-
     return;
 }
 
 
+//Explore the graph vertically
 bool dfsCheck(int node, Graph* graph, vector<int> &vis, vector<int> &pathVis) {
     vis[node] = 1;
     pathVis[node] = 1;
@@ -109,6 +109,7 @@ bool dfsCheck(int node, Graph* graph, vector<int> &vis, vector<int> &pathVis) {
 
 
 // Function to detect cycle in a directed graph.
+//Recursively, use DFS search
 bool isCyclic(Graph* graph) {
     int V = graph->number_of_nodes;
     vector<int> vis(V, 0);
@@ -127,7 +128,58 @@ bool isCyclic(Graph* graph) {
 }
 
 
-//Explore the graph without going multiple times on the same node
+//Detect if a path is possible between <source> and <target>
+//Use BFS search and a matrix with 0's for empty edges (contrary to INF)
+int IsPathExist(int source, int target, int n, vector<int>& parent,vector<vector<int> >& graph)
+{
+    fill(parent.begin(),parent.end(),-1);
+    parent[source] = -2;
+    queue<pair<int,int> > q;
+    q.push({source,1e9});
+    while(!q.empty()){
+        int u = q.front().first;
+        int cap = q.front().second;
+        q.pop();
+        for(int v=0;v<n;v++){
+            if(u!=v && graph[u][v]!=0 && parent[v]==-1){
+                parent[v] = u;
+                //Updating the minimum capacity
+                int min_cap = min(cap,graph[u][v]);
+                if(v==target){
+                    return min_cap;
+                }
+                q.push({v,min_cap});
+            }
+        }
+    }
+    return 0;
+}
+
+
+//Max Flow algorithm between two points if the path exists
+int FordFulkerson(int source, int target, Graph *graph)
+{
+    vector<vector<int> > mat = graph->ConvertToMatrix(0);
+    int n = graph->number_of_nodes;
+    vector<int> parent(n,-1);
+    int max_flow = 0;
+    int min_cap = 0;
+    while(min_cap = IsPathExist(source,target,n,parent,mat)){
+        max_flow += min_cap;
+        int v = target;
+        while(v!=source){
+            int u = parent[v];
+            mat[u][v] -= min_cap;
+            mat[v][u] += min_cap;
+            v=u;
+        }
+    }
+    cout << "Maximum Flow Using Ford Fulkerson Algo: " << max_flow << endl;
+    return max_flow;
+}
+
+
+//Explore the graph horizontally without going multiple times on the same node
 //Useful because the adjency list may contain multiple object for the same vertex
 void BFS(Graph *graph, int source)
 {

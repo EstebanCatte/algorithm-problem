@@ -6,7 +6,6 @@ using namespace std;
 
 #define INF 2147483647
 #define MAX_NODE 99
-//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
 
 
 struct Node
@@ -134,10 +133,10 @@ class Graph {
 
 
     // Function to convert adjacency list to adjacency matrix
-    vector<vector<int> > ConvertToMatrix()
+    vector<vector<int> > ConvertToMatrix(int fill_with = INF)
     {   
         int V = this->number_of_nodes;
-        vector<vector<int> > matrix(V, vector<int>(V, INF));
+        vector<vector<int> > matrix(V, vector<int>(V, fill_with));
     
         for (int i = 0; i < V; i++) {
             Node *node = head_node[i];
