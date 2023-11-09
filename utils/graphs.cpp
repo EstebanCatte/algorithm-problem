@@ -33,12 +33,12 @@ int main(){
     graph.Display();
     BFS(&graph, 0);
     FloydWarshall(&graph);
-    BellmanFord(&graph, 0);
-    graph.head_node[0];
-    isCyclic(&graph);
-    vector<int> parent(graph.number_of_nodes, -1); 
-    vector<vector<int> > mat = graph.ConvertToMatrix();
-    int flow = FordFulkerson(0, 5, &graph);
+    BellmanFord(&graph, 0, 3);
+    //graph.head_node[0];
+    //isCyclic(&graph);
+    //vector<int> parent(graph.number_of_nodes, -1); 
+    //vector<vector<int> > mat = graph.ConvertToMatrix();
+    //int flow = FordFulkerson(0, 5, &graph);
 
     return 0;
 }

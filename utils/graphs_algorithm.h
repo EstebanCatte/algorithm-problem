@@ -31,7 +31,7 @@ void FloydWarshall(Graph *graph)
 // The main function that finds shortest distances from src
 // to all other vertices using Bellman-Ford algorithm.  The
 // function also detects negative weight cycle
-void BellmanFord(Graph* graph, int src)
+void BellmanFord(Graph* graph, int src, int target)
 {
     cout << "===========================" << endl;
     cout << "        Bellman Ford       " << endl;
@@ -40,6 +40,7 @@ void BellmanFord(Graph* graph, int src)
     int V = graph->number_of_nodes;
     int E = graph->GetNumEdges();
     int dist[V];
+    vector<int> predecessors(V, INF);
  
     // Initialize distances from src to all other
     // vertices as INFINITE
@@ -57,10 +58,20 @@ void BellmanFord(Graph* graph, int src)
             int weight = graph->edge_list[j].weight;
             if (dist[u] != INF && dist[u] + weight < dist[v]){
                 dist[v] = dist[u] + weight;
+                predecessors[v] = u;
             }
         }
     }
- 
+
+    int current = target;
+    cout << "Shortest path is :";
+    while (current != INF){
+        cout << current;
+        if (current!=source){cout << "->";}
+        current = predecessors[current];
+    }
+    cout << endl;
+    
     // check for negative-weight cycles.  The above
     // step guarantees shortest distances if graph doesn't
     // contain negative weight cycle.  If we get a shorter
