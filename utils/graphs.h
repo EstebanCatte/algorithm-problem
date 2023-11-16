@@ -67,16 +67,17 @@ class Graph {
                 Node* existing_node = GetEdge(edge);
                 existing_node->weight = edge.weight;
             }
-            
         }
+
 
         int number_of_nodes;
         vector<graphEdge> edge_list;
         Node **head_node;
 
         //constructor
-        Graph(vector<graphEdge> graphEdges, int num_of_edge, int num_of_node){
+        Graph(int num_of_node){
             this->number_of_nodes = num_of_node;
+            vector<graphEdge> graphEdges;
             this->edge_list = graphEdges;
             // dynamic memory allocation
             head_node = new Node*[num_of_node]();
@@ -85,13 +86,8 @@ class Graph {
             for (int k = 0; k < num_of_node; k++) {
                 head_node[k] = NULL;
             }
-
-            if(num_of_edge > 0){
-                for (int k = 0; k < num_of_edge; k++){
-                    this->AddEdge(this->edge_list[k]);
-                }
-            }
         }
+
 
         //destructor
         ~Graph() {
@@ -102,10 +98,21 @@ class Graph {
         }
 
 
+    void init_edges(vector<graphEdge> graphEdges)
+    {
+        if(sizeof(graphEdges) > 0){
+            for (int k = 0; k < sizeof(graphEdges); k++){
+                this->AddEdge(this->edge_list[k]);
+            }
+        }
+    }
+    
+
     int GetNumEdges()
     {
         return this->edge_list.size();
     }
+
 
     //Return destination node object for a given edge object
     //No need to have the origin due to the adjency list data struct (stored in first places)

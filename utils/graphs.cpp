@@ -1,5 +1,6 @@
 #include <bits/stdc++.h>
 #include "graphs.h"
+#include "bipartite.h"
 #include "graphs_algorithm.h"
 
 using namespace std;
@@ -12,11 +13,10 @@ int main(){
     cout << "Number of edges to init: ";
     cin >> M;
 
-    vector<graphEdge> graphEdges;
+    
     int number_of_nodes = N;
     int num_edges = 0;
-    Graph graph(graphEdges, num_edges, number_of_nodes);
-    graph.Display();
+    Graph graph(number_of_nodes);
 
     //input
     for(int i = 0; i < M; i++){
@@ -39,6 +39,25 @@ int main(){
     //vector<int> parent(graph.number_of_nodes, -1); 
     //vector<vector<int> > mat = graph.ConvertToMatrix();
     //int flow = FordFulkerson(0, 5, &graph);
+
+    const int jobs = 3;
+    const int worker = 3;
+
+    int array[jobs][worker] = {{8, 5, 9}, {4, 2, 4}, {7, 3, 8}};
+
+    // Convertir le tableau statique en un vecteur 2D
+    std::vector<std::vector<int> > costs;
+    for (int i = 0; i < jobs; ++i) {
+        std::vector<int> row(array[i], array[i] + worker);
+        costs.push_back(row);
+    }  
+    std::vector<int> myVector;
+
+    vector<int> answers;
+    answers = BipartiteGraph::Hungarian(costs);
+    for(int i = 0; i < jobs; i++){
+        cout << "Job " << i << " cost at least : " << answers[i] << endl;
+    }
 
     return 0;
 }

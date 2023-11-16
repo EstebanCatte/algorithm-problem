@@ -3,6 +3,7 @@
 
 #include "graphs.h"
 #include <bits/stdc++.h>
+#include <queue>
 using namespace std;
 #define INF 2147483647
 
@@ -67,7 +68,7 @@ void BellmanFord(Graph* graph, int src, int target)
     cout << "Shortest path is :";
     while (current != INF){
         cout << current;
-        if (current!=source){cout << "->";}
+        if (current!=src){cout << "->";}
         current = predecessors[current];
     }
     cout << endl;
@@ -145,8 +146,10 @@ int IsPathExist(int source, int target, int n, vector<int>& parent,vector<vector
 {
     fill(parent.begin(),parent.end(),-1);
     parent[source] = -2;
-    queue<pair<int,int> > q;
-    q.push({source,1e9});
+    //queue<pair<int,int> > q;
+    //q.push({source,1e9});
+    std::queue<std::pair<int, double> > q;
+    q.push(std::make_pair(source, 1e9));
     while(!q.empty()){
         int u = q.front().first;
         int cap = q.front().second;
@@ -159,7 +162,8 @@ int IsPathExist(int source, int target, int n, vector<int>& parent,vector<vector
                 if(v==target){
                     return min_cap;
                 }
-                q.push({v,min_cap});
+                q.push(std::make_pair(v, min_cap));
+                //q.push({v,min_cap});
             }
         }
     }
