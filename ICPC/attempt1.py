@@ -113,6 +113,7 @@ class Solver():
 
 
     def compute_rate(self, frame):
+        print("..rate computation..")
         W = 192
         rate = 0
         user = self.users[frame["userid"]]
@@ -127,6 +128,9 @@ class Solver():
 
 
     def check_frame_validity(self, frame):
+        # print("...validity check...")
+        # print("frame rate : {} | frame tbs : {}".format(frame["rate"], frame["TBS"]))
+        # print("check is {}".format(frame["rate"] >= frame["TBS"]))
         return frame["rate"] >= frame["TBS"]
 
 
@@ -185,6 +189,7 @@ class Heuristic1(Solver):
 
 
     def find_power(self, TBS, user, rbg, tti):
+        #FOR 2 BS CASE
         W = 192
         #2% de marge sur le TBS
         cons = 2**((TBS/1.98)/W) 
@@ -193,7 +198,7 @@ class Heuristic1(Solver):
         return value
 
 
-    def process_frame(self, frame):
+    def solve(self, frame):
         user = self.users[frame["userid"]]
         heuristic = self.heuristic_matrix[user.id]
         
@@ -205,8 +210,15 @@ class Heuristic1(Solver):
         self.heuristic_matrix[user.id][max_index[0]][max_index[1]] = -1e9
         power_to_allocate = self.find_power(frame["TBS"], user, rbg, tti)
         
+        print("......Debug solver.....")
+        print("# user {} | rbg {} | tti {} | score {}".format(user.id, rbg, tti, np.max(heuristic)))
+        print("power allocated : {}".format(power_to_allocate))
+
+        if power_to_allocate < 0:
+            raise ValueError("Allocated power is negative")
+
         for bs in self.basestations:
-            self.powers[user.id][bs.id][tti][rbg] = power_to_allocate
+            self.powers[user.id][bs.id][tti][rbg] = max(0,min(power_to_allocate, 4))
 
 
     def print_results(self):
@@ -273,7 +285,8 @@ for i in range(num_frame):
                 "userid": int(inp[2]), #user ID it belongs to
                 "t0": int(inp[3]), #first tti from 0 to T-1
                 "tti": int(inp[4]), #number of TTI
-                "t1": int(inp[3]+inp[4])}) 
+                "t1": int(inp[3]+inp[4]),
+                "rate":0}) 
 
 #==========================================================================
 #                       TEST
@@ -291,25 +304,25 @@ print("#############################")
 users = [User(i, num_rbg, num_bs, num_tti, num_frame) for i in range(num_user)]
 basestations = [Basestation(i, num_user, num_rbg) for i in range(num_bs)]
 
+
 solver = Heuristic1(users, basestations, num_rbg, num_bs, num_user, num_tti, num_frame, frames, sinr, interference)
 
 #1) trier les frames
 sorted_frames = solver.sort_frames(frames)
 solver.compute_heuristic_matrix()
-solver.process_frame(sorted_frames[0])
-solver.process_frame(sorted_frames[1])
 
-
+score = 0
 for frame in sorted_frames:
-    print("Computing frame {} with TBS {}".format(frame["frameid"], frame["TBS"]))
+    solver.solve(frame)
     solver.compute_rate(frame)
-
-for i in range(num_frame):
-    print("Frame {} TBS {} Rate {}".format(i, frames[i]["TBS"], frames[i]["rate"]))
-    print("Frame {} check: {}".format(i, solver.check_frame_validity(frames[0])))
-
+    print("Computing frame {} with TBS : {} and rate : {}".format(frame["frameid"], frame["TBS"], frame["rate"]))
+    validity = solver.check_frame_validity(frame)
+    print("Frame {} check: {}".format(i, validity))
+    score += validity
+    input("next... ")
 
 print("###########################################")
 print("                 RESULTS")
 print("###########################################")
 solver.print_results()
+print("End score : {}".format(score))
