@@ -1,12 +1,11 @@
 import math
-import numpy as np
 
 class User():
 
     def __init__(self, id, num_rbg, num_bs, num_tti, num_frame):
         self.id = id
-        self.sinr0 = np.zeros((num_rbg, num_tti, num_bs))
-        self.status = np.zeros((num_frame, num_tti)) #connected to the 0th basestation
+        self.sinr0 = [[[0] * num_bs for _ in range(num_tti)] for _ in range(num_rbg)]
+        self.status = [[0] * num_tti for _ in range(num_frame)] #connected to the 0th basestation
         self.block = 0
         self.tti = 0
 
@@ -15,7 +14,7 @@ class Basestation():
 
     def __init__(self, id, num_user, num_rbg):
         self.id = id
-        self.interf_factor= np.zeros((num_user, num_user, num_rbg))
+        self.interf_factor= [[[0] * num_rbg for _ in range(num_user)] for _ in range(num_user)]
 
 
 #TODO: the unsignment
@@ -37,8 +36,8 @@ class Solver():
         self.formate_interf(interference)
 
         #solution matrix
-        self.powers = np.zeros((num_user, num_bs, num_tti, num_rbg ))
-        self.sinr = np.zeros((num_user, num_bs, num_tti, num_rbg ))
+        self.powers = [[[[0] * num_rbg for _ in range(num_tti)] for _ in range(num_bs)] for _ in range(num_user)]
+        self.sinr = [[[[0] * num_rbg for _ in range(num_tti)] for _ in range(num_bs)] for _ in range(num_user)]
 
 
     #determine a user is communicating with <bs> at <tti> with <rbg>
@@ -48,8 +47,7 @@ class Solver():
 
     #change power value
     def allocate_power(self, power_value, user, bs, rbg, tti):
-        self.powers[user.id][bs.id][rbg][tti] = np.clip(power_value, 0, 4)
-
+        self.powers[user.id][bs.id][rbg][tti] = [min(max(val, 0), 4) for val in power_value]
 
     def compute_all_rbg_interference(self):
         for i,user in self.users:
@@ -59,8 +57,8 @@ class Solver():
     def get_used_rbg(self, user, bs, tti):
         #retourne la liste des blocs sur lequels <user> communique pour une station <bs> et un <tti> donné
         line = self.powers[user.id][bs.id][tti]
-        blocks = np.where(line>0)
-        return blocks[0]
+        blocks = [index for index, value in enumerate(line) if value > 0]
+        return blocks
 
 
     def compute_in_interference(self, user, bs, tti, rbg):
@@ -113,7 +111,7 @@ class Solver():
 
 
     def compute_rate(self, frame):
-        print("..rate computation..")
+        #print("#  ..rate computation..")
         W = 192
         rate = 0
         user = self.users[frame["userid"]]
@@ -154,7 +152,6 @@ class Solver():
     
 
     def network_status(self):
-        np.zeros((num_user, num_bs, num_tti, num_rbg ))
         for u in self.users:
             for bs in self.basestations:
                 for t in range(self.num_tti):
@@ -176,14 +173,25 @@ class Heuristic1(Solver):
     def __init__(self, users, basestations, num_rbg, num_bs, num_user, num_tti, num_frame, frames, sinr, interference):
         super().__init__(users, basestations, num_rbg, num_bs, num_user, num_tti, num_frame, frames, sinr, interference)
 
+    def find_max_heuristic(self, matrix):
+        max_value = float('-inf')
+        max_index = None
+        for rbg in range(num_rbg):
+            for tti in range(num_tti):
+                current_value = matrix[rbg][tti]
+                if current_value > max_value:
+                    max_value = current_value
+                    max_index = (rbg, tti)
+        return max_index
+
 
     def compute_heuristic_matrix(self):
         #metric is sum(sinr0)
-        self.heuristic_matrix = np.zeros((self.num_user, self.num_rbg, self.num_tti))
+        self.heuristic_matrix = [[[0] * num_tti for _ in range(num_rbg)] for _ in range(num_user)]
         for user in self.users:
             for r in range(self.num_rbg):
                 for t in range(self.num_tti):
-                    self.heuristic_matrix[user.id][r][t] = np.sum(user.sinr0[r][t])
+                    self.heuristic_matrix[user.id][r][t] = sum(user.sinr0[r][t])
 
         return self.heuristic_matrix
 
@@ -193,7 +201,7 @@ class Heuristic1(Solver):
         W = 192
         #2% de marge sur le TBS
         cons = 2**((TBS/1.98)/W) 
-        lower_sinr = np.min(user.sinr0[rbg][tti])
+        lower_sinr = min(user.sinr0[rbg][tti])
         value = (cons * math.sqrt(1/(lower_sinr**2))*lower_sinr - 1) / lower_sinr
         return value
 
@@ -201,22 +209,21 @@ class Heuristic1(Solver):
     def solve(self, frame):
         user = self.users[frame["userid"]]
         heuristic = self.heuristic_matrix[user.id]
-        
-        max_index_flat = np.argmax(heuristic)
-        max_index = np.unravel_index(max_index_flat, heuristic.shape)
+        max_index = self.find_max_heuristic(heuristic)
         
         rbg = max_index[0]
         tti = max_index[1]
         self.heuristic_matrix[user.id][max_index[0]][max_index[1]] = -1e9
         power_to_allocate = self.find_power(frame["TBS"], user, rbg, tti)
         
-        print("......Debug solver.....")
-        print("# user {} | rbg {} | tti {} | score {}".format(user.id, rbg, tti, np.max(heuristic)))
-        print("power allocated : {}".format(power_to_allocate))
+        #print("......Debug solver.....")
+        #print("#   user {} | rbg {} | tti {} | score {}".format(user.id, rbg, tti, max(heuristic)))
+        #print("#  power allocated : {}".format(power_to_allocate))
 
-        if power_to_allocate < 0:
-            raise ValueError("Allocated power is negative")
+        # if power_to_allocate < 0:
+        #     raise ValueError("Allocated power is negative")
 
+        power_to_allocate = min(self.num_rbg/self.num_bs, power_to_allocate)
         for bs in self.basestations:
             self.powers[user.id][bs.id][tti][rbg] = max(0,min(power_to_allocate, 4))
 
@@ -232,71 +239,125 @@ class Heuristic1(Solver):
 #==========================================================================
 #                       INPUTS INPUTS INPUTS
 #==========================================================================
-print("###########################################")
-print("                 ICPC")
-print("###########################################")
-with open('./tests/06.txt', 'r') as file:
-    lines = file.readlines()
+# print("###########################################")
+# print("                 ICPC")
+# print("###########################################")
+# with open('./tests/00.txt', 'r') as file:
+#     lines = file.readlines()
 
+# # # 1 TTI is 0.5ms
+# # # Number of USER
+# # # users are numbered from 0 to N-1
+# num_user = int(lines[0].strip())
+
+
+# # # Number of cell
+# # # cell are numbered from 0 to K-1
+# # # each of which is equipped with a base station to serve users.
+# # # One base station usually serves multiple users, and multiple base stations may serve one user at the same time.
+# num_bs = int(lines[1].strip())
+
+
+# # # TTI number
+# # # Transmission Time Interval
+# # # numbered from 0 to T-1
+# num_tti = int(lines[2].strip())
+
+
+# # # RBD number
+# # # Each RBG coresponds to a transmission bandwidth of 5760 kHz
+# # # numbered from 0 to T-1
+# num_rbg = int(lines[3].strip())
+
+
+# # #Initial Signal-to-Interference-plus-Noise-Ratio
+# sinr = []
+# for i in range(4, 4+num_rbg*num_bs*num_tti):
+#     sinr.append(list(map(float, lines[i].strip().split())))
+
+
+# # interference factor
+# interference = []
+# for i in range(4+num_rbg*num_bs*num_tti, 4+num_rbg*num_bs*num_tti + num_user*num_rbg*num_bs):
+#     interference.append(list(map(float, lines[i].strip().split())))
+
+
+# # # Number of frame
+# num_frame = int(lines[4+num_rbg*num_bs*num_tti+num_user*num_rbg*num_bs].strip())
+# frames = []
+# for i in range(num_frame):
+#     inp = list(map(float, lines[4+num_rbg*num_bs*num_tti+num_user*num_rbg*num_bs+1+i].split()))
+#     frames.append({"frameid": int(inp[0]), #frame id 0 to J-1 increasing order
+#                 "TBS": int(inp[1]), #size TBS
+#                 "userid": int(inp[2]), #user ID it belongs to
+#                 "t0": int(inp[3]), #first tti from 0 to T-1
+#                 "tti": int(inp[4]), #number of TTI
+#                 "t1": int(inp[3]+inp[4]),
+#                 "rate":0}) 
+#==========================================================================
+#                       INPUTS INPUTS INPUTS
+#==========================================================================
+# # print("###########################################")
+# # print("                 ICPC")
+# # print("###########################################")
 # # 1 TTI is 0.5ms
 # # Number of USER
 # # users are numbered from 0 to N-1
-num_user = int(lines[0].strip())
-
-
+num_user = int(input())
+ 
+ 
 # # Number of cell
 # # cell are numbered from 0 to K-1
 # # each of which is equipped with a base station to serve users.
 # # One base station usually serves multiple users, and multiple base stations may serve one user at the same time.
-num_bs = int(lines[1].strip())
-
-
+num_bs = int(input())
+ 
+ 
 # # TTI number
 # # Transmission Time Interval
 # # numbered from 0 to T-1
-num_tti = int(lines[2].strip())
-
-
+num_tti = int(input())
+ 
+ 
 # # RBD number
 # # Each RBG coresponds to a transmission bandwidth of 5760 kHz
 # # numbered from 0 to T-1
-num_rbg = int(lines[3].strip())
-
-
+num_rbg = int(input())
+ 
+ 
 # #Initial Signal-to-Interference-plus-Noise-Ratio
 sinr = []
 for i in range(4, 4+num_rbg*num_bs*num_tti):
-    sinr.append(list(map(float, lines[i].strip().split())))
-
-
+    sinr.append(list(map(float, input().split())))
+ 
+ 
 # interference factor
 interference = []
 for i in range(4+num_rbg*num_bs*num_tti, 4+num_rbg*num_bs*num_tti + num_user*num_rbg*num_bs):
-    interference.append(list(map(float, lines[i].strip().split())))
-
-
+    interference.append(list(map(float, input().split())))
+ 
+ 
 # # Number of frame
-num_frame = int(lines[4+num_rbg*num_bs*num_tti+num_user*num_rbg*num_bs].strip())
+num_frame = int(input())
 frames = []
 for i in range(num_frame):
-    inp = list(map(float, lines[4+num_rbg*num_bs*num_tti+num_user*num_rbg*num_bs+1+i].split()))
+    inp = list(map(float, input().split()))
     frames.append({"frameid": int(inp[0]), #frame id 0 to J-1 increasing order
                 "TBS": int(inp[1]), #size TBS
                 "userid": int(inp[2]), #user ID it belongs to
                 "t0": int(inp[3]), #first tti from 0 to T-1
                 "tti": int(inp[4]), #number of TTI
                 "t1": int(inp[3]+inp[4]),
-                "rate":0}) 
-
+                "rate":0})             
 #==========================================================================
 #                       TEST
 #==========================================================================
-print("#  NUM UE : {}".format(num_user))
-print("#  NUM BS : {}".format(num_bs))
-print("#  NUM TTI: {}".format(num_tti))
-print("#  NUM RBG: {}".format(num_rbg))
-print("#  NUM FRA: {}".format(num_frame))
-print("#############################")
+# print("#  NUM UE : {}".format(num_user))
+# print("#  NUM BS : {}".format(num_bs))
+# print("#  NUM TTI: {}".format(num_tti))
+# print("#  NUM RBG: {}".format(num_rbg))
+# print("#  NUM FRA: {}".format(num_frame))
+# print("#############################")
 
 #==========================================================================
 #                       Start
@@ -315,14 +376,14 @@ score = 0
 for frame in sorted_frames:
     solver.solve(frame)
     solver.compute_rate(frame)
-    print("Computing frame {} with TBS : {} and rate : {}".format(frame["frameid"], frame["TBS"], frame["rate"]))
+    #print("#  Computing frame {} with TBS : {} and rate : {}".format(frame["frameid"], frame["TBS"], frame["rate"]))
     validity = solver.check_frame_validity(frame)
-    print("Frame {} check: {}".format(i, validity))
+    #print("#  Frame {} check: {}".format(i, validity))
     score += validity
-    input("next... ")
+    #input("#  next... ")
 
-print("###########################################")
-print("                 RESULTS")
-print("###########################################")
+# print("###########################################")
+# print("                 RESULTS")
+# print("###########################################")
 solver.print_results()
-print("End score : {}".format(score))
+# print("End score : {}".format(score))
