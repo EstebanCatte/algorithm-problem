@@ -21,7 +21,7 @@ class Basestation():
 
 class Solver():
 
-    def __init__(self, users, basestations, num_rbg, num_bs, num_user, num_tti, num_frame, frames, sinr, interference):
+    def __init__(self, users, basestations, num_rbg, num_bs, num_user, num_tti, num_frame, frames, sinr0, interference):
         self.users = users
         self.basestations = basestations
         self.num_rbg = num_rbg
@@ -32,7 +32,7 @@ class Solver():
         self.num_user = num_user
 
         #matrix init
-        self.formate_sinr(sinr)
+        self.formate_sinr(sinr0)
         self.formate_interf(interference)
 
         #solution matrix
@@ -44,10 +44,6 @@ class Solver():
     def is_communicating(self, user, bs, rbg, tti):
         return self.powers[user.id][bs.id][tti][rbg] > 0
 
-
-    #change power value
-    def allocate_power(self, power_value, user, bs, rbg, tti):
-        self.powers[user.id][bs.id][rbg][tti] = [min(max(val, 0), 4) for val in power_value]
 
     def compute_all_rbg_interference(self):
         for i,user in self.users:
