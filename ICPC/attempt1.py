@@ -155,7 +155,7 @@ class Solver():
                         p = self.powers[u.id][bs.id][t][r]
                         sinr = self.sinr[u.id][bs.id][t][r]
                         # if p > 0:
-                        #     print("BS {} sending to UE {} with block {} and TTI {}".format(bs.id, u.id, t, r))
+                        #     print("BS {} sending to UE {} with block {} and TTI {}".format(bs.id, u.id, r, t))
                         # print("===SINR === BS {} sending to UE {} with block {} and TTI {} = {}".format(bs.id, u.id, t, r, sinr))
 
 
