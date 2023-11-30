@@ -5,7 +5,6 @@ class User():
     def __init__(self, id, num_rbg, num_bs, num_tti, num_frame):
         self.id = id
         self.sinr0 = [[[0] * num_bs for _ in range(num_tti)] for _ in range(num_rbg)]
-        self.status = [[0] * num_tti for _ in range(num_frame)] #connected to the 0th basestation
         self.block = 0
         self.tti = 0
 
@@ -88,6 +87,7 @@ class Solver():
         sinr =  (sinr0 * power * in_interference) / (1+out_interference)
         #print("Com User {} bs {} in_interf = {} et out_interf = {}".format(user.id, bs.id, in_interference, out_interference))
         self.sinr[user.id][bs.id][tti][rbg] = sinr
+        print("sinr0 = {} power = {} in_interf = {} out_interf = {} sinr = {}".format(sinr0, power, in_interference, out_interference, sinr, sinr))
         return sinr
 
 
@@ -112,6 +112,7 @@ class Solver():
                     in_com = self.is_communicating(user, bs, rbg, tti)
                     sinr = self.compute_geometric_sinr(user, bs, tti)
                     rate += in_com * math.log2(1+sinr)
+                    print("| in com {} | sinr {} | rate {}".format(in_com, sinr, rate))
         rate = W*rate
         frame["rate"] = rate
 
@@ -193,6 +194,7 @@ class Heuristic1(Solver):
         #2% de marge sur le TBS
         cons = 2**((TBS/1.98)/W) 
         lower_sinr = min(user.sinr0[rbg][tti])
+        print("cons = {} lower_sinr = {}".format(cons, lower_sinr))
         value = (cons * math.sqrt(1/(lower_sinr**2))*lower_sinr - 1) / lower_sinr
         return value
 
@@ -204,7 +206,7 @@ class Heuristic1(Solver):
         
         rbg = max_index[0]
         tti = max_index[1]
-        self.heuristic_matrix[user.id][max_index[0]][max_index[1]] = -1e9
+        
         power_to_allocate = self.find_power(frame["TBS"], user, rbg, tti)
         
         print("......Debug solver.....")
@@ -214,6 +216,7 @@ class Heuristic1(Solver):
         # if power_to_allocate < 0:
         #     raise ValueError("Allocated power is negative")
 
+        self.heuristic_matrix[user.id][max_index[0]][max_index[1]] = -1e9
         power_to_allocate = min(self.num_rbg/self.num_bs, power_to_allocate)
         for bs in self.basestations:
             self.powers[user.id][bs.id][tti][rbg] = max(0,min(power_to_allocate, 4))

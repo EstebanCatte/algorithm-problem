@@ -1,5 +1,6 @@
 #include <bits/stdc++.h>
 #include <algorithm>
+#include <typeinfo>
 
 using namespace std;
 
@@ -11,8 +12,7 @@ class User{
         int num_bs;
         int num_tti;
         int num_frame;
-        vector<vector<vector<int> > > sinr0;
-        vector<vector<int> > status;
+        vector<vector<vector<float> > > sinr0;
         int block;
         int tti;
 
@@ -23,10 +23,7 @@ class User{
             this->num_bs = num_bs;
             this->num_tti = num_tti;
             this->num_frame = num_frame;
-            this->sinr0 = vector<vector<vector<int> > >(num_rbg, vector<vector<int> >(num_tti, vector<int>(num_bs, 0)));
-            this->status = vector<vector<int> >(num_frame, vector<int>(num_tti, 0));
-            //vector<vector<vector<int>>> sinr0(num_rbg, vector<vector<int>>(num_tti, vector<int>(num_bs, 0)));
-            //vector<vector<int>> status(num_frame, vector<int>(num_tti, 0));
+            this->sinr0 = vector<vector<vector<float> > >(num_rbg, vector<vector<float> >(num_tti, vector<float>(num_bs, 0)));
             this->block = 0;
             this->tti = 0;
         }
@@ -38,11 +35,11 @@ class User{
 class Basestation{
     public:
         int id;
-        vector<vector<vector<int> > > interf_factor;
+        vector<vector<vector<float> > > interf_factor;
         //constructor
         Basestation(int id, int num_user, int num_rbg){
             this->id = id;
-            this->interf_factor = vector<vector<vector<int> > > (num_user, vector<vector<int> >(num_user, vector<int>(num_rbg, 0)));
+            this->interf_factor = vector<vector<vector<float> > > (num_user, vector<vector<float> >(num_user, vector<float>(num_rbg, 0)));
         }
         //destructor
         ~Basestation() {}       
@@ -156,6 +153,7 @@ class Solver{
         float in_interference = this->compute_in_interference(user, bs, tti, rbg);
         float out_interference = this->compute_out_interference(user, bs, tti, rbg);
         float sinr = (sinr0 * power * in_interference) / (1+out_interference);
+        //cout << "|sinr0 " << sinr0 << "|power " << power << "|in_interf " << in_interference << "|out_interf " << out_interference << "|sinr " << sinr << endl;
         this->sinr[user.id][bs.id][tti][rbg] = sinr;
         return sinr;
     }
@@ -201,7 +199,7 @@ class Solver{
     }
 
 
-    void formate_sinr(vector<vector<float> > sinr){
+    void formate_sinr(vector<vector<float> >& sinr){
         for (int t = 0; t < this->num_tti; ++t) {
             for (int b = 0; b < this->num_bs; ++b) {
                 for (int r = 0; r < this->num_rbg; ++r) {
@@ -214,7 +212,7 @@ class Solver{
     }
 
 
-    void formate_interf(vector<vector<float> > interference){
+    void formate_interf(vector<vector<float> >& interference){
         for (int i=0; i < this->num_bs; i++){
             for (int r=0; r<this->num_rbg; r++){
                 for (int u=0; u<this->num_user; u++){
@@ -252,7 +250,7 @@ class Solver{
     };
 
 
-    void sort_frame(vector<vector<int> > frame){
+    void sort_frame(vector<vector<int> >& frame){
         sort(frame.begin(), frame.end(), CompareFunction());
     }
 
@@ -298,7 +296,7 @@ class Heuristic1: public Solver{
         for (int u=0; u<this->num_user; u++){
             for (int rbg=0; rbg<this->num_rbg; rbg++){
                 for (int tti=0; tti<this->num_tti; tti++){
-                    float sum=0;
+                    float sum=0.0;
                     //sum computation
                     for (int bs=0; bs<this->num_bs; bs++){
                         sum+= this->users[u].sinr0[rbg][tti][bs];
@@ -314,7 +312,7 @@ class Heuristic1: public Solver{
         float W = 192.0;
         //2% de marge sur le tbs;
         float cons = pow(2,((static_cast<float>(TBS)/1.98)/W));
-        float lower_sinr = -1000000000.0;
+        float lower_sinr = 1000000000.0;
         for (int bs=0; bs<this->num_bs; bs++){
             if (user.sinr0[rbg][tti][bs] < lower_sinr){
                 lower_sinr = user.sinr0[rbg][tti][bs];
@@ -348,9 +346,9 @@ class Heuristic1: public Solver{
         this->heuristic_matrix[user.id][rbg][tti] = -1000000000;
         float power_to_allocate = this->find_power(frame[1], user, rbg, tti);
 
-        cout << ".....DEBUG SOLVER....." << endl;
-        cout << " User " << user.id << " | RBG " << rbg << " | TTI " << tti << " | score : " << score << endl;
-        cout << " power allocated " << power_to_allocate << endl;
+        // cout << ".....DEBUG SOLVER....." << endl;
+        // cout << " User " << user.id << " | RBG " << rbg << " | TTI " << tti << " | score : " << score << endl;
+        // cout << " power allocated " << power_to_allocate << endl;
         power_to_allocate = min(static_cast<float>(this->num_rbg)/static_cast<float>(this->num_bs), power_to_allocate);
 
         float power_max = 4.0;
@@ -416,12 +414,13 @@ int main(){
 
     Heuristic1 solver(users, basestations, num_rbg, num_bs, num_user, num_tti, num_frame, frames, sinr, interference);
     solver.sort_frame(frames);
+
     solver.compute_heuristic_matrix();
-    int score = 0;
+
     for (int i=0; i<num_frame; i++){
         solver.solve(frames[i]);
         solver.compute_rate(frames[i]);
-        cout << "Computing frame " << i << " with TBS " << frames[i][1] << " and rate " << frames[i][6] << endl;
+        //cout << "Computing frame " << i << " with TBS " << frames[i][1] << " and rate " << frames[i][6] << endl;
         //validity = solver.check_frame_validity(frame)
         //score += validity
         //print("#  Frame {} check: {}".format(i, validity))
