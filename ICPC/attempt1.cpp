@@ -72,7 +72,7 @@ class Solver{
                int num_tti,
                int num_frame,
                vector<vector<int> > &frames,
-               vector<vector<vector<vector<float> > > > &sinr,
+               vector<vector<float> > &sinr0,
                vector<vector<float> >& interference
                )
         {  
@@ -84,8 +84,11 @@ class Solver{
             this->num_tti = num_tti;
             this->num_frame = num_frame;
             this->frames = frames;
+
+            this->formate_interf(interference);
+            this->formate_sinr(sinr0);
+
             this->sinr = vector<vector<vector<vector<float> > > >(num_user,vector<vector<vector<float> > >(num_bs,vector<vector<float> >(num_tti, vector<float>(num_rbg, 0))));
-            this->interference = interference;  
             this->powers = vector<vector<vector<vector<float> > > >(num_user,vector<vector<vector<float> > >(num_bs,vector<vector<float> >(num_tti, vector<float>(num_rbg, 0))));
         }
 
@@ -147,28 +150,11 @@ class Solver{
     }
 
 
-    // def compute_out_interference(self, user, bs, tti, rbg):
-    //     #Pénalité de colision parce que user et inter_user communique avec la même bs sur le même bloc et tti
-    //     #Interference from the other bs communicating
-    //     #equation 7 denominator
-    //     interference = 0
-    //     for interf_bs in self.basestations:
-    //         if interf_bs != bs:
-    //             for interf_user in self.users:
-    //                 if interf_user != user:
-    //                     interf_factor = interf_bs.interf_factor[interf_user.id][user.id][rbg]
-    //                     sinr0 = user.sinr0[rbg][tti][interf_bs.id]
-    //                     power = self.powers[interf_user.id][interf_bs.id][tti][rbg]
-    //                     interference +=  sinr0 * power * math.exp(-interf_factor)
-    //     return interference
-
-
-
     float compute_sinr(User user, Basestation bs, int tti, int rbg){
         float sinr0 = user.sinr0[rbg][tti][bs.id];
         float power = this->powers[user.id][bs.id][tti][rbg];
-        float in_interference = 1.0; //this->compute_in_interference(user, bs, tti, rbg);
-        float out_interference = 1.0; //this->compute_out_interference(user, bs, tti, rbg);
+        float in_interference = this->compute_in_interference(user, bs, tti, rbg);
+        float out_interference = this->compute_out_interference(user, bs, tti, rbg);
         float sinr = (sinr0 * power * in_interference) / (1+out_interference);
         this->sinr[user.id][bs.id][tti][rbg] = sinr;
         return sinr;
@@ -201,17 +187,17 @@ class Solver{
             }
         }
         rate = W*rate;
-        frame[6] = rate;
+        frame[5] = rate;
         return rate;
     }
 
 
     bool check_frame_validity(vector<int> frame){
         cout << "...validity check..." << endl;
-        cout << "Frame rate : " << frame[6] << " | frame tbs : " << frame[1] << endl;
-        bool res = frame[6] >= frame[1];
+        cout << "Frame rate : " << frame[5] << " | frame tbs : " << frame[1] << endl;
+        bool res = frame[5] >= frame[1];
         cout << "Check is " << res << endl;
-        return frame[6] >= frame[1];
+        return frame[5] >= frame[1];
     }
 
 
@@ -285,14 +271,14 @@ class Heuristic1: public Solver{
                int num_tti,
                int num_frame,
                vector<vector<int> > &frames,
-               vector<vector<vector<vector<float> > > > &sinr,
+               vector<vector<float> >& sinr0,
                vector<vector<float> >& interference
-               ) : Solver(users, basestations, num_rbg, num_bs, num_user, num_tti, num_frame, frames, sinr, interference){
+               ) : Solver(users, basestations, num_rbg, num_bs, num_user, num_tti, num_frame, frames, sinr0, interference){
                 this->heuristic_matrix = vector<vector<vector<float> > >(num_user, vector<vector<float> >(num_rbg, vector<float>(num_tti, 0)));
                }
 
 
-    int* find_max_heuristic(int user_id, int& rbg_out, int& tti_out){
+    void find_max_heuristic(int user_id, int& rbg_out, int& tti_out){
         float max_value = -1000000000.0;
         for (int rbg=0; rbg<this->num_rbg; rbg++){
             for(int tti=0; tti<this->num_tti; tti++){
@@ -374,45 +360,74 @@ class Heuristic1: public Solver{
             this->powers[user.id][this->basestations[bs].id][tti][rbg] = std::max(0.0f, mini);
         }
 
-    }
-
-    // def solve(self, frame):
-    //     user = self.users[frame["userid"]]
-    //     heuristic = self.heuristic_matrix[user.id]
-    //     max_index = self.find_max_heuristic(heuristic)
-        
-    //     rbg = max_index[0]
-    //     tti = max_index[1]
-    //     self.heuristic_matrix[user.id][max_index[0]][max_index[1]] = -1e9
-    //     power_to_allocate = self.find_power(frame["TBS"], user, rbg, tti)
-        
-    //     #print("......Debug solver.....")
-    //     #print("#   user {} | rbg {} | tti {} | score {}".format(user.id, rbg, tti, max(heuristic)))
-    //     #print("#  power allocated : {}".format(power_to_allocate))
-
-    //     # if power_to_allocate < 0:
-    //     #     raise ValueError("Allocated power is negative")
-
-    //     power_to_allocate = min(self.num_rbg/self.num_bs, power_to_allocate)
-    //     for bs in self.basestations:
-    //         self.powers[user.id][bs.id][tti][rbg] = max(0,min(power_to_allocate, 4))
-
-    // frames.append({"frameid": int(inp[0]), #frame id 0 to J-1 increasing order
-    //             "TBS": int(inp[1]), #size TBS
-    //             "userid": int(inp[2]), #user ID it belongs to
-    //             "t0": int(inp[3]), #first tti from 0 to T-1
-    //             "tti": int(inp[4]), #number of TTI
-    //             "t1": int(inp[3]+inp[4]),
-    //             "rate":0})   
-
+    } 
 };
 
 
 int main(){
-    int id = 0;
-    int num_rbg = 1;
-    int num_bs = 1;
-    int num_tti = 1;
-    int num_frame = 1;
-    User u(id, num_rbg, num_bs, num_tti, num_frame);
+
+    int num_user, num_bs, num_tti, num_rbg, num_frame;
+    cin >> num_user >> num_bs >> num_tti >> num_rbg;
+    vector<vector<float> > sinr;
+
+    for (int i = 4; i < 4+num_rbg*num_bs*num_tti; ++i) {
+        vector<float> row;
+        for (int j = 0; j < num_user; ++j) {
+            float value;
+            cin >> value;
+            row.push_back(value);
+        }
+        sinr.push_back(row);
+    }
+
+    vector<vector<float> > interference;
+    for (int i = 4+num_rbg*num_bs*num_tti; i < 4+num_rbg*num_bs*num_tti + num_user*num_rbg*num_bs; ++i) {
+        std::vector<float> row;
+        for (int j = 0; j < num_user; ++j) {
+            float value;
+            std::cin >> value;
+            row.push_back(value);
+        }
+        interference.push_back(row);
+    }
+
+    cin >> num_frame;
+    vector<vector<int> > frames;
+    for (int i = 0; i < num_frame; ++i) {
+        vector<int> inp;
+        for (int j = 0; j < 5; ++j) {
+            int value;
+            cin >> value;
+            inp.push_back(value);
+        }
+        inp.push_back(0);
+        frames.push_back(inp);
+    }
+
+    vector<User> users;
+    for(int i=0; i<num_user; i++){
+        users.push_back(User(i, num_rbg, num_bs, num_tti, num_frame));
+
+    }
+    vector<Basestation> basestations;
+    for(int i=0; i<num_bs; i++){
+        basestations.push_back(Basestation(i, num_user, num_rbg));
+    }
+
+    Heuristic1 solver(users, basestations, num_rbg, num_bs, num_user, num_tti, num_frame, frames, sinr, interference);
+    solver.sort_frame(frames);
+    solver.compute_heuristic_matrix();
+    int score = 0;
+    for (int i=0; i<num_frame; i++){
+        solver.solve(frames[i]);
+        solver.compute_rate(frames[i]);
+        cout << "Computing frame " << i << " with TBS " << frames[i][1] << " and rate " << frames[i][6] << endl;
+        //validity = solver.check_frame_validity(frame)
+        //score += validity
+        //print("#  Frame {} check: {}".format(i, validity))
+    }
+    //###########################################
+    //                RESULTS")
+    //###########################################
+    solver.print_results();
 }

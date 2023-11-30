@@ -45,11 +45,6 @@ class Solver():
         return self.powers[user.id][bs.id][tti][rbg] > 0
 
 
-    def compute_all_rbg_interference(self):
-        for i,user in self.users:
-            self.compute_rbg_interference(user)
-
-
     def get_used_rbg(self, user, bs, tti):
         #retourne la liste des blocs sur lequels <user> communique pour une station <bs> et un <tti> donné
         line = self.powers[user.id][bs.id][tti]
@@ -212,9 +207,9 @@ class Heuristic1(Solver):
         self.heuristic_matrix[user.id][max_index[0]][max_index[1]] = -1e9
         power_to_allocate = self.find_power(frame["TBS"], user, rbg, tti)
         
-        #print("......Debug solver.....")
-        #print("#   user {} | rbg {} | tti {} | score {}".format(user.id, rbg, tti, max(heuristic)))
-        #print("#  power allocated : {}".format(power_to_allocate))
+        print("......Debug solver.....")
+        print("#   user {} | rbg {} | tti {} | score {}".format(user.id, rbg, tti, max(heuristic)))
+        print("#  power allocated : {}".format(power_to_allocate))
 
         # if power_to_allocate < 0:
         #     raise ValueError("Allocated power is negative")
@@ -235,61 +230,61 @@ class Heuristic1(Solver):
 #==========================================================================
 #                       INPUTS INPUTS INPUTS
 #==========================================================================
-# print("###########################################")
-# print("                 ICPC")
-# print("###########################################")
-# with open('./tests/00.txt', 'r') as file:
-#     lines = file.readlines()
+print("###########################################")
+print("                 ICPC")
+print("###########################################")
+with open('C:/Users/Esteban/Documents/GitHub/algorithm-problem/ICPC/tests/00.txt', 'r') as file:
+    lines = file.readlines()
 
-# # # 1 TTI is 0.5ms
-# # # Number of USER
-# # # users are numbered from 0 to N-1
-# num_user = int(lines[0].strip())
-
-
-# # # Number of cell
-# # # cell are numbered from 0 to K-1
-# # # each of which is equipped with a base station to serve users.
-# # # One base station usually serves multiple users, and multiple base stations may serve one user at the same time.
-# num_bs = int(lines[1].strip())
+# # 1 TTI is 0.5ms
+# # Number of USER
+# # users are numbered from 0 to N-1
+num_user = int(lines[0].strip())
 
 
-# # # TTI number
-# # # Transmission Time Interval
-# # # numbered from 0 to T-1
-# num_tti = int(lines[2].strip())
+# # Number of cell
+# # cell are numbered from 0 to K-1
+# # each of which is equipped with a base station to serve users.
+# # One base station usually serves multiple users, and multiple base stations may serve one user at the same time.
+num_bs = int(lines[1].strip())
 
 
-# # # RBD number
-# # # Each RBG coresponds to a transmission bandwidth of 5760 kHz
-# # # numbered from 0 to T-1
-# num_rbg = int(lines[3].strip())
+# # TTI number
+# # Transmission Time Interval
+# # numbered from 0 to T-1
+num_tti = int(lines[2].strip())
 
 
-# # #Initial Signal-to-Interference-plus-Noise-Ratio
-# sinr = []
-# for i in range(4, 4+num_rbg*num_bs*num_tti):
-#     sinr.append(list(map(float, lines[i].strip().split())))
+# # RBD number
+# # Each RBG coresponds to a transmission bandwidth of 5760 kHz
+# # numbered from 0 to T-1
+num_rbg = int(lines[3].strip())
 
 
-# # interference factor
-# interference = []
-# for i in range(4+num_rbg*num_bs*num_tti, 4+num_rbg*num_bs*num_tti + num_user*num_rbg*num_bs):
-#     interference.append(list(map(float, lines[i].strip().split())))
+# #Initial Signal-to-Interference-plus-Noise-Ratio
+sinr = []
+for i in range(4, 4+num_rbg*num_bs*num_tti):
+    sinr.append(list(map(float, lines[i].strip().split())))
 
 
-# # # Number of frame
-# num_frame = int(lines[4+num_rbg*num_bs*num_tti+num_user*num_rbg*num_bs].strip())
-# frames = []
-# for i in range(num_frame):
-#     inp = list(map(float, lines[4+num_rbg*num_bs*num_tti+num_user*num_rbg*num_bs+1+i].split()))
-#     frames.append({"frameid": int(inp[0]), #frame id 0 to J-1 increasing order
-#                 "TBS": int(inp[1]), #size TBS
-#                 "userid": int(inp[2]), #user ID it belongs to
-#                 "t0": int(inp[3]), #first tti from 0 to T-1
-#                 "tti": int(inp[4]), #number of TTI
-#                 "t1": int(inp[3]+inp[4]),
-#                 "rate":0}) 
+# interference factor
+interference = []
+for i in range(4+num_rbg*num_bs*num_tti, 4+num_rbg*num_bs*num_tti + num_user*num_rbg*num_bs):
+    interference.append(list(map(float, lines[i].strip().split())))
+
+
+# # Number of frame
+num_frame = int(lines[4+num_rbg*num_bs*num_tti+num_user*num_rbg*num_bs].strip())
+frames = []
+for i in range(num_frame):
+    inp = list(map(float, lines[4+num_rbg*num_bs*num_tti+num_user*num_rbg*num_bs+1+i].split()))
+    frames.append({"frameid": int(inp[0]), #frame id 0 to J-1 increasing order
+                "TBS": int(inp[1]), #size TBS
+                "userid": int(inp[2]), #user ID it belongs to
+                "t0": int(inp[3]), #first tti from 0 to T-1
+                "tti": int(inp[4]), #number of TTI
+                "t1": int(inp[3]+inp[4]),
+                "rate":0}) 
 #==========================================================================
 #                       INPUTS INPUTS INPUTS
 #==========================================================================
@@ -299,52 +294,53 @@ class Heuristic1(Solver):
 # # 1 TTI is 0.5ms
 # # Number of USER
 # # users are numbered from 0 to N-1
-num_user = int(input())
+# num_user = int(input())
+
+ 
+# # # Number of cell
+# # # cell are numbered from 0 to K-1
+# # # each of which is equipped with a base station to serve users.
+# # # One base station usually serves multiple users, and multiple base stations may serve one user at the same time.
+# num_bs = int(input())
  
  
-# # Number of cell
-# # cell are numbered from 0 to K-1
-# # each of which is equipped with a base station to serve users.
-# # One base station usually serves multiple users, and multiple base stations may serve one user at the same time.
-num_bs = int(input())
+# # # TTI number
+# # # Transmission Time Interval
+# # # numbered from 0 to T-1
+# num_tti = int(input())
  
  
-# # TTI number
-# # Transmission Time Interval
-# # numbered from 0 to T-1
-num_tti = int(input())
+# # # RBD number
+# # # Each RBG coresponds to a transmission bandwidth of 5760 kHz
+# # # numbered from 0 to T-1
+# num_rbg = int(input())
  
  
-# # RBD number
-# # Each RBG coresponds to a transmission bandwidth of 5760 kHz
-# # numbered from 0 to T-1
-num_rbg = int(input())
+# # #Initial Signal-to-Interference-plus-Noise-Ratio
+# sinr = []
+# for i in range(4, 4+num_rbg*num_bs*num_tti):
+#     sinr.append(list(map(float, input().split())))
  
  
-# #Initial Signal-to-Interference-plus-Noise-Ratio
-sinr = []
-for i in range(4, 4+num_rbg*num_bs*num_tti):
-    sinr.append(list(map(float, input().split())))
+# # interference factor
+# interference = []
+# for i in range(4+num_rbg*num_bs*num_tti, 4+num_rbg*num_bs*num_tti + num_user*num_rbg*num_bs):
+#     interference.append(list(map(float, input().split())))
  
  
-# interference factor
-interference = []
-for i in range(4+num_rbg*num_bs*num_tti, 4+num_rbg*num_bs*num_tti + num_user*num_rbg*num_bs):
-    interference.append(list(map(float, input().split())))
- 
- 
-# # Number of frame
-num_frame = int(input())
-frames = []
-for i in range(num_frame):
-    inp = list(map(float, input().split()))
-    frames.append({"frameid": int(inp[0]), #frame id 0 to J-1 increasing order
-                "TBS": int(inp[1]), #size TBS
-                "userid": int(inp[2]), #user ID it belongs to
-                "t0": int(inp[3]), #first tti from 0 to T-1
-                "tti": int(inp[4]), #number of TTI
-                "t1": int(inp[3]+inp[4]),
-                "rate":0})             
+# # # Number of frame
+# num_frame = int(input())
+# frames = []
+# for i in range(num_frame):
+#     inp = list(map(float, input().split()))
+#     frames.append({"frameid": int(inp[0]), #frame id 0 to J-1 increasing order
+#                 "TBS": int(inp[1]), #size TBS
+#                 "userid": int(inp[2]), #user ID it belongs to
+#                 "t0": int(inp[3]), #first tti from 0 to T-1
+#                 "tti": int(inp[4]), #number of TTI
+#                 "t1": int(inp[3]+inp[4]),
+#                 "rate":0})    
+     
 #==========================================================================
 #                       TEST
 #==========================================================================
