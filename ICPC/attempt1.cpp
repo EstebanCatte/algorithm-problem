@@ -1,6 +1,10 @@
 #include <bits/stdc++.h>
 #include <algorithm>
 #include <typeinfo>
+#include <iostream>
+#include <fstream>
+#include <string>
+#include <sstream>
 
 using namespace std;
 
@@ -260,6 +264,7 @@ class Heuristic1: public Solver{
 
     public:
         vector<vector<vector<float> > > heuristic_matrix;
+        vector<vector<float> > heuristic;
 
         Heuristic1(vector<User>& users,
                vector<Basestation>& basestations, 
@@ -339,74 +344,132 @@ class Heuristic1: public Solver{
 
     void solve(vector<int> frame){
         User user = this->users[frame[2]];
-        vector<vector<float> > heuristic = this->heuristic_matrix[user.id];
+        this->heuristic = this->heuristic_matrix[user.id];
         int rbg, tti;
         find_max_heuristic(user.id, rbg, tti);
         float score = this->heuristic_matrix[user.id][rbg][tti];
         this->heuristic_matrix[user.id][rbg][tti] = -1000000000;
         float power_to_allocate = this->find_power(frame[1], user, rbg, tti);
 
-        // cout << ".....DEBUG SOLVER....." << endl;
-        // cout << " User " << user.id << " | RBG " << rbg << " | TTI " << tti << " | score : " << score << endl;
-        // cout << " power allocated " << power_to_allocate << endl;
+        cout << ".....DEBUG SOLVER....." << endl;
+        cout << " User " << user.id << " | RBG " << rbg << " | TTI " << tti << " | score : " << score << endl;
+        
         power_to_allocate = min(static_cast<float>(this->num_rbg)/static_cast<float>(this->num_bs), power_to_allocate);
 
         float power_max = 4.0;
-        float mini = 0.0;
+        float mini;
         for (int bs=0; bs<this->num_bs; bs++){
-            mini = std::min(power_to_allocate, power_max);
+            mini = min(power_to_allocate, power_max);
             this->powers[user.id][this->basestations[bs].id][tti][rbg] = std::max(0.0f, mini);
+            //power_to_allocate = std::max(0.0f, mini);
         }
-
-    } 
+        cout << " power allocated " << power_to_allocate << endl; 
+    }
 };
 
 
 int main(){
 
-    int num_user, num_bs, num_tti, num_rbg, num_frame;
-    cin >> num_user >> num_bs >> num_tti >> num_rbg;
-    vector<vector<float> > sinr;
+    string nomFichier = "./tests/00.txt";
+    ifstream fichier(nomFichier);
+    if (!fichier.is_open()) {
+        cerr << "Impossible d'ouvrir le fichier : " << nomFichier << endl;
+        return 1; // Quitter avec une erreur
+    }
+    string ligne;
 
+    getline(fichier, ligne);
+    int num_user = stoi(ligne);
+    getline(fichier, ligne);
+    int num_bs = stoi(ligne);
+    getline(fichier, ligne);
+    int num_tti = stoi(ligne);
+    getline(fichier, ligne);
+    int num_rbg = stoi(ligne);
+
+    vector<vector<float> > sinr;
+    vector<float> inputs(num_user);
+    
     for (int i = 4; i < 4+num_rbg*num_bs*num_tti; ++i) {
-        vector<float> row;
+        getline(fichier, ligne);
+        istringstream ss(ligne);
         for (int j = 0; j < num_user; ++j) {
-            float value;
-            cin >> value;
-            row.push_back(value);
+            ss >> inputs[j];
         }
-        sinr.push_back(row);
+        sinr.push_back(inputs);
     }
 
     vector<vector<float> > interference;
     for (int i = 4+num_rbg*num_bs*num_tti; i < 4+num_rbg*num_bs*num_tti + num_user*num_rbg*num_bs; ++i) {
-        std::vector<float> row;
+        getline(fichier, ligne);
+        istringstream ss(ligne);
         for (int j = 0; j < num_user; ++j) {
-            float value;
-            std::cin >> value;
-            row.push_back(value);
+            ss >> inputs[j];
         }
-        interference.push_back(row);
+        interference.push_back(inputs);
     }
 
-    cin >> num_frame;
+    getline(fichier, ligne);
+    int num_frame = stoi(ligne);
     vector<vector<int> > frames;
+    vector<int> inputs2(num_user+1);
+
     for (int i = 0; i < num_frame; ++i) {
-        vector<int> inp;
+        getline(fichier, ligne);
+        istringstream ss(ligne);
         for (int j = 0; j < 5; ++j) {
-            int value;
-            cin >> value;
-            inp.push_back(value);
+            ss >> inputs2[j];
         }
-        inp.push_back(0);
-        frames.push_back(inp);
+        inputs2[num_user] = 0;
+        frames.push_back(inputs2);
     }
 
+
+    // int num_user, num_bs, num_tti, num_rbg, num_frame;
+    // cin >> num_user >> num_bs >> num_tti >> num_rbg;
+    // vector<vector<float> > sinr;
+
+    // for (int i = 4; i < 4+num_rbg*num_bs*num_tti; ++i) {
+    //     vector<float> row;
+    //     for (int j = 0; j < num_user; ++j) {
+    //         float value;
+    //         cin >> value;
+    //         row.push_back(value);
+    //     }
+    //     sinr.push_back(row);
+    // }
+
+    // vector<vector<float> > interference;
+    // for (int i = 4+num_rbg*num_bs*num_tti; i < 4+num_rbg*num_bs*num_tti + num_user*num_rbg*num_bs; ++i) {
+    //     std::vector<float> row;
+    //     for (int j = 0; j < num_user; ++j) {
+    //         float value;
+    //         std::cin >> value;
+    //         row.push_back(value);
+    //     }
+    //     interference.push_back(row);
+    // }
+
+    // cin >> num_frame;
+    // vector<vector<int> > frames;
+    // for (int i = 0; i < num_frame; ++i) {
+    //     vector<int> inp;
+    //     for (int j = 0; j < 5; ++j) {
+    //         int value;
+    //         cin >> value;
+    //         inp.push_back(value);
+    //     }
+    //     inp.push_back(0);
+    //     frames.push_back(inp);
+    // }
+
+    fichier.close();
+    
     vector<User> users;
     for(int i=0; i<num_user; i++){
         users.push_back(User(i, num_rbg, num_bs, num_tti, num_frame));
-
     }
+    
     vector<Basestation> basestations;
     for(int i=0; i<num_bs; i++){
         basestations.push_back(Basestation(i, num_user, num_rbg));
@@ -418,11 +481,11 @@ int main(){
     solver.compute_heuristic_matrix();
 
     for (int i=0; i<num_frame; i++){
+        cout << "Computing frame " << i << " with TBS " << frames[i][1] << " and rate " << frames[i][6] << endl;
         solver.solve(frames[i]);
         solver.compute_rate(frames[i]);
-        //cout << "Computing frame " << i << " with TBS " << frames[i][1] << " and rate " << frames[i][6] << endl;
-        //validity = solver.check_frame_validity(frame)
-        //score += validity
+        // validity = solver.check_frame_validity(frame)
+        // score += validity
         //print("#  Frame {} check: {}".format(i, validity))
     }
     //###########################################
