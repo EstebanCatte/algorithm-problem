@@ -351,8 +351,8 @@ class Heuristic1: public Solver{
         this->heuristic_matrix[user.id][rbg][tti] = -1000000000;
         float power_to_allocate = this->find_power(frame[1], user, rbg, tti);
 
-        cout << ".....DEBUG SOLVER....." << endl;
-        cout << " User " << user.id << " | RBG " << rbg << " | TTI " << tti << " | score : " << score << endl;
+        //cout << ".....DEBUG SOLVER....." << endl;
+        //cout << " User " << user.id << " | RBG " << rbg << " | TTI " << tti << " | score : " << score << endl;
         
         power_to_allocate = min(static_cast<float>(this->num_rbg)/static_cast<float>(this->num_bs), power_to_allocate);
 
@@ -361,109 +361,188 @@ class Heuristic1: public Solver{
         for (int bs=0; bs<this->num_bs; bs++){
             mini = min(power_to_allocate, power_max);
             this->powers[user.id][this->basestations[bs].id][tti][rbg] = std::max(0.0f, mini);
-            //power_to_allocate = std::max(0.0f, mini);
+            power_to_allocate = std::max(0.0f, mini);
         }
-        cout << " power allocated " << power_to_allocate << endl; 
+        //cout << " power allocated " << power_to_allocate << endl; 
+    }
+
+
+    int check_constraint(){
+        int end = 0;
+        for (int t = 0; t < this->num_tti; ++t) {
+            for (int b = 0; b < this->num_bs; ++b) {
+                float counter = 0.0;
+                float sum2 = 0;
+                for (int r = 0; r < this->num_rbg; ++r) {
+                    float sum = 0;
+                    for (int i = 0; i < this->num_user; ++i){
+                        if (this->powers[i][b][t][r] > 0){
+                            counter+=1.0;
+                        }
+                        sum += this->powers[i][b][t][r];
+                    }
+                    if(sum>4.0){
+                        end = 1;
+                        //cout << "/!| PROBLEM WITH FIRST CONSTRAINT sum is " << sum << endl;
+                        //cout << "with tti " << t << " block " << b << " rbg " << r << endl;
+                        float d = sum-4.0;
+                        while (d > 0){
+                            float max = 0.0;
+                            int place;
+                            for (int i = 0; i < this->num_user; ++i){
+                                if (this->powers[i][b][t][r] > max){
+                                    max = this->powers[i][b][t][r];
+                                    place = i;
+                                }
+                                //this->powers[i][b][t][r] -= (d/static_cast<float>(this->num_user))*1.01;
+                            }
+                            d -=  this->powers[place][b][t][r];
+                            this->powers[place][b][t][r] = 0.0;
+                        }  
+                    }
+                    sum2 += sum;
+                }
+                if(sum2 > this->num_rbg){
+                    end = 1;
+                    //cout << "/!| PROBLEM WITH SECOND CONSTRAINT sum is " << sum2 << endl;
+                    //cout << "with tti " << t << " block " << b << endl;
+                    float d = sum2-static_cast<float>(this->num_rbg);
+                    //cout << "diff is " << d << endl;
+                    while (d>0){
+                        float max = 0.0;
+                        int place1, place2;
+                        for (int r = 0; r < this->num_rbg; ++r) {
+                            for (int i = 0; i < this->num_user; ++i){
+                                if (this->powers[i][b][t][r] > max){
+                                    max = this->powers[i][b][t][r];
+                                    place1 = i;
+                                    place2 = r;
+                                    //cout << "power was " << this->powers[i][b][t][r] << endl;
+                                    //this->powers[i][b][t][r] -= d/(counter)*1.01;
+                                    //cout << "power is now " << this->powers[i][b][t][r] << endl;
+                                }
+                            }
+                        }
+                        d -= this->powers[place1][b][t][place2];
+                        this->powers[place1][b][t][place2] = 0;
+                    }
+                }
+            }
+        }
+
+        for (int t = 0; t < this->num_tti; ++t) {
+            for (int b = 0; b < this->num_bs; ++b) {
+                for (int r = 0; r < this->num_rbg; ++r) {
+                    for (int i = 0; i < this->num_user; ++i){
+                        if (this->powers[i][b][t][r] < 0.0){
+                            this->powers[i][b][t][r] = 0;
+                        }
+                    }
+                }
+            }
+        }
+    return end;
     }
 };
 
 
 int main(){
 
-    string nomFichier = "./tests/00.txt";
-    ifstream fichier(nomFichier);
-    if (!fichier.is_open()) {
-        cerr << "Impossible d'ouvrir le fichier : " << nomFichier << endl;
-        return 1; // Quitter avec une erreur
-    }
-    string ligne;
+    // string nomFichier = "./tests/21.txt";
+    // ifstream fichier(nomFichier);
+    // if (!fichier.is_open()) {
+    //     cerr << "Impossible d'ouvrir le fichier : " << nomFichier << endl;
+    //     return 1; // Quitter avec une erreur
+    // }
+    // string ligne;
 
-    getline(fichier, ligne);
-    int num_user = stoi(ligne);
-    getline(fichier, ligne);
-    int num_bs = stoi(ligne);
-    getline(fichier, ligne);
-    int num_tti = stoi(ligne);
-    getline(fichier, ligne);
-    int num_rbg = stoi(ligne);
+    // getline(fichier, ligne);
+    // int num_user = stoi(ligne);
+    // getline(fichier, ligne);
+    // int num_bs = stoi(ligne);
+    // getline(fichier, ligne);
+    // int num_tti = stoi(ligne);
+    // getline(fichier, ligne);
+    // int num_rbg = stoi(ligne);
 
-    vector<vector<float> > sinr;
-    vector<float> inputs(num_user);
-    
-    for (int i = 4; i < 4+num_rbg*num_bs*num_tti; ++i) {
-        getline(fichier, ligne);
-        istringstream ss(ligne);
-        for (int j = 0; j < num_user; ++j) {
-            ss >> inputs[j];
-        }
-        sinr.push_back(inputs);
-    }
-
-    vector<vector<float> > interference;
-    for (int i = 4+num_rbg*num_bs*num_tti; i < 4+num_rbg*num_bs*num_tti + num_user*num_rbg*num_bs; ++i) {
-        getline(fichier, ligne);
-        istringstream ss(ligne);
-        for (int j = 0; j < num_user; ++j) {
-            ss >> inputs[j];
-        }
-        interference.push_back(inputs);
-    }
-
-    getline(fichier, ligne);
-    int num_frame = stoi(ligne);
-    vector<vector<int> > frames;
-    vector<int> inputs2(num_user+1);
-
-    for (int i = 0; i < num_frame; ++i) {
-        getline(fichier, ligne);
-        istringstream ss(ligne);
-        for (int j = 0; j < 5; ++j) {
-            ss >> inputs2[j];
-        }
-        inputs2[num_user] = 0;
-        frames.push_back(inputs2);
-    }
-
-
-    // int num_user, num_bs, num_tti, num_rbg, num_frame;
-    // cin >> num_user >> num_bs >> num_tti >> num_rbg;
     // vector<vector<float> > sinr;
-
+    // vector<float> inputs(num_user);
+    
     // for (int i = 4; i < 4+num_rbg*num_bs*num_tti; ++i) {
-    //     vector<float> row;
+    //     getline(fichier, ligne);
+    //     istringstream ss(ligne);
     //     for (int j = 0; j < num_user; ++j) {
-    //         float value;
-    //         cin >> value;
-    //         row.push_back(value);
+    //         ss >> inputs[j];
     //     }
-    //     sinr.push_back(row);
+    //     sinr.push_back(inputs);
     // }
 
     // vector<vector<float> > interference;
     // for (int i = 4+num_rbg*num_bs*num_tti; i < 4+num_rbg*num_bs*num_tti + num_user*num_rbg*num_bs; ++i) {
-    //     std::vector<float> row;
+    //     getline(fichier, ligne);
+    //     istringstream ss(ligne);
     //     for (int j = 0; j < num_user; ++j) {
-    //         float value;
-    //         std::cin >> value;
-    //         row.push_back(value);
+    //         ss >> inputs[j];
     //     }
-    //     interference.push_back(row);
+    //     interference.push_back(inputs);
     // }
 
-    // cin >> num_frame;
+
+    // getline(fichier, ligne);
+    // int num_frame = stoi(ligne);
     // vector<vector<int> > frames;
+    // vector<int> inputs2(6);
+
     // for (int i = 0; i < num_frame; ++i) {
-    //     vector<int> inp;
+    //     getline(fichier, ligne);
+    //     istringstream ss(ligne);
     //     for (int j = 0; j < 5; ++j) {
-    //         int value;
-    //         cin >> value;
-    //         inp.push_back(value);
+    //         ss >> inputs2[j];
     //     }
-    //     inp.push_back(0);
-    //     frames.push_back(inp);
+    //     inputs2[5] = 0;
+    //     frames.push_back(inputs2);
     // }
 
-    fichier.close();
+
+    int num_user, num_bs, num_tti, num_rbg, num_frame;
+    cin >> num_user >> num_bs >> num_tti >> num_rbg;
+    vector<vector<float> > sinr;
+
+    for (int i = 4; i < 4+num_rbg*num_bs*num_tti; ++i) {
+        vector<float> row;
+        for (int j = 0; j < num_user; ++j) {
+            float value;
+            cin >> value;
+            row.push_back(value);
+        }
+        sinr.push_back(row);
+    }
+
+    vector<vector<float> > interference;
+    for (int i = 4+num_rbg*num_bs*num_tti; i < 4+num_rbg*num_bs*num_tti + num_user*num_rbg*num_bs; ++i) {
+        std::vector<float> row;
+        for (int j = 0; j < num_user; ++j) {
+            float value;
+            std::cin >> value;
+            row.push_back(value);
+        }
+        interference.push_back(row);
+    }
+
+    cin >> num_frame;
+    vector<vector<int> > frames;
+    for (int i = 0; i < num_frame; ++i) {
+        vector<int> inp;
+        for (int j = 0; j < 5; ++j) {
+            int value;
+            cin >> value;
+            inp.push_back(value);
+        }
+        inp.push_back(0);
+        frames.push_back(inp);
+    }
+
+    //fichier.close();
     
     vector<User> users;
     for(int i=0; i<num_user; i++){
@@ -481,12 +560,17 @@ int main(){
     solver.compute_heuristic_matrix();
 
     for (int i=0; i<num_frame; i++){
-        cout << "Computing frame " << i << " with TBS " << frames[i][1] << " and rate " << frames[i][6] << endl;
+        //cout << "Computing frame " << i << " with TBS " << frames[i][1] << " and rate " << frames[i][6] << endl;
         solver.solve(frames[i]);
-        solver.compute_rate(frames[i]);
+        //solver.compute_rate(frames[i]);
         // validity = solver.check_frame_validity(frame)
         // score += validity
         //print("#  Frame {} check: {}".format(i, validity))
+    }
+
+    int end = 1;
+    while(end == 1){
+        end = solver.check_constraint();
     }
     //###########################################
     //                RESULTS")
