@@ -445,6 +445,13 @@ class Heuristic1: public Solver{
     }
 };
 
+int p(int r, int n, int t, int R, int N) {
+    if (n % N == (t * R + r) % N) {
+        return 1;
+    } else {
+        return 0;
+    }
+}
 
 int main(){
 
@@ -554,26 +561,48 @@ int main(){
         basestations.push_back(Basestation(i, num_user, num_rbg));
     }
 
-    Heuristic1 solver(users, basestations, num_rbg, num_bs, num_user, num_tti, num_frame, frames, sinr, interference);
-    solver.sort_frame(frames);
-
-    solver.compute_heuristic_matrix();
-
-    for (int i=0; i<num_frame; i++){
-        //cout << "Computing frame " << i << " with TBS " << frames[i][1] << " and rate " << frames[i][6] << endl;
-        solver.solve(frames[i]);
-        //solver.compute_rate(frames[i]);
-        // validity = solver.check_frame_validity(frame)
-        // score += validity
-        //print("#  Frame {} check: {}".format(i, validity))
+    vector<vector<vector<vector<float> > > > powers(num_user,vector<vector<vector<float> > >(num_bs,vector<vector<float> >(num_tti, vector<float>(num_rbg, 0))));
+    for(int i=0; i<num_user; i++){
+        for(int b=0; b<num_bs; b++){
+            for(int t=0; t<num_tti; t++){
+                for(int r=0; r<num_rbg; r++){
+                    powers[i][b][t][r] = p(r,i,t,r,num_user);
+                }
+            }
+        }
     }
 
-    int end = 1;
-    while(end == 1){
-        end = solver.check_constraint();
+    for (int t = 0; t < num_tti; ++t) {
+        for (int b = 0; b < num_bs; ++b) {
+            for (int r = 0; r < num_rbg; ++r) {
+                for (int i = 0; i < num_user; ++i){
+                    cout << powers[i][b][t][r] << " ";
+                }
+                cout << endl;
+            }
+        }
     }
+
+    // Heuristic1 solver(users, basestations, num_rbg, num_bs, num_user, num_tti, num_frame, frames, sinr, interference);
+    // solver.sort_frame(frames);
+
+    // solver.compute_heuristic_matrix();
+
+    // for (int i=0; i<num_frame; i++){
+    //     //cout << "Computing frame " << i << " with TBS " << frames[i][1] << " and rate " << frames[i][6] << endl;
+    //     solver.solve(frames[i]);
+    //     //solver.compute_rate(frames[i]);
+    //     // validity = solver.check_frame_validity(frame)
+    //     // score += validity
+    //     //print("#  Frame {} check: {}".format(i, validity))
+    // }
+
+    // int end = 1;
+    // while(end == 1){
+    //     end = solver.check_constraint();
+    // }
     //###########################################
     //                RESULTS")
     //###########################################
-    solver.print_results();
+    //solver.print_results();
 }
