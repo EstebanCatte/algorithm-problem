@@ -12,5 +12,4 @@ for i in range(len(a[0])):
             res.append(i)
 
 print(len(res))
-for i in res:
-    print(i)
+for i in res
